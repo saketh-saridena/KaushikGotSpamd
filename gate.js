@@ -1,5 +1,5 @@
-/* The only public code. After a host signs in, the invitation and dashboard
-   are fetched from private storage. Nothing else is published here. */
+/* The only public code. Guests are shown the invitation straight away.
+   Hosts sign in (add ?hosts to the link) to reach the host preview and the dashboard. */
 (function () {
   const CFG = {
     url: 'https://vmibktrnxfscuytnewtw.supabase.co',
@@ -17,6 +17,7 @@
     set(v) { try { if (v) sessionStorage.setItem(VIEW, v); else sessionStorage.removeItem(VIEW); } catch { /* private window */ } }
   };
   let session = load();
+  const params = new URLSearchParams(location.search);
 
   async function call(path, { method = 'GET', body, token } = {}) {
     const headers = { apikey: CFG.key };
@@ -104,6 +105,22 @@
     }
   }
 
+  /* The guest copy saves real RSVPs. A personal link (?i=...) shows that party's own events. */
+  async function openGuest() {
+    $('signin').hidden = true;
+    $('home').hidden = true;
+    say('Opening the invitation…');
+    try {
+      const res = await call(`/storage/v1/object/private-site/guest.html?v=${Date.now()}`);
+      const html = await res.text();
+      document.open();
+      document.write(html);
+      document.close();
+    } catch {
+      say('The invitation could not open. Check your connection and refresh the page.');
+    }
+  }
+
   $('signin').addEventListener('submit', async e => {
     e.preventDefault();
     const email = $('email').value.trim().toLowerCase();
@@ -131,6 +148,7 @@
   $('signout').addEventListener('click', () => signOut());
 
   (async function start() {
+    if (params.has('i') || (!session && !params.has('hosts'))) { await openGuest(); return; }
     if (!session) { showSignIn(); return; }
     try {
       const t = await token();

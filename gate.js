@@ -89,7 +89,8 @@
     try {
       const t = await token();
       if (!t) { showSignIn('Please sign in again.'); return; }
-      const res = await call(`/storage/v1/object/private-site/${name}.html`, { token: t });
+      // A fresh address each time, so a new upload shows at once instead of a cached copy.
+      const res = await call(`/storage/v1/object/private-site/${name}.html?v=${Date.now()}`, { token: t });
       const html = await res.text();
       view.set(name);
       document.open();
